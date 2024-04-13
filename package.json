@@ -1,0 +1,11 @@
+{
+  "name": "carousel",
+  "version": "0.3.0",
+  "description": "Two-dimensional carousel navigated with a mouse-following blob",
+  "main": "carousel.js",
+  "scripts": {
+    "test": "test"
+  },
+  "author": "nzhuk3",
+  "license": "MIT"
+}
