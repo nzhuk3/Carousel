@@ -148,6 +148,39 @@ class Carousel {
         this.blobElement = this.blob.blobEl;
     }
 
+    #unblur = (rowIndex, itemIndex) => {
+        this.tracks[rowIndex].children[itemIndex].classList.add("enabled");
+        this.tracks[rowIndex].children[itemIndex].firstElementChild.firstElementChild.classList.remove("blurred");
+    }
+
+    #blur = (rowIndex, itemIndex) => {
+        this.tracks[rowIndex].children[itemIndex].classList.remove("enabled");
+        this.tracks[rowIndex].children[itemIndex].firstElementChild.firstElementChild.classList.add("blurred");
+    }
+
+    #onReveal = this.#unblur;
+    #onHide = this.#blur;
+
+    set onReveal(callback) {
+        if(typeof callback == 'function') {
+            this.#onReveal = callback;
+        }
+    }
+
+    set onHide(callback) {
+        if(typeof callback == 'function') {
+            this.#onHide = callback;
+        }
+    }
+
+    revealItem(rowIndex, itemIndex, callback = this.#onReveal) {
+        callback(rowIndex, itemIndex)
+    }
+
+    hideItem(rowIndex, itemIndex, callback = this.#onHide) {
+        callback(rowIndex, itemIndex)
+    }
+
     setpositionX() {
         this.track.style.transform = `translate(${this.positionX}px, 0px)`;
         this.track.dataset.position = this.positionX;
@@ -158,6 +191,7 @@ class Carousel {
     };
 
     init() {
+        this.revealItem(this.focusedRowIndex, this.focusedElementIndex);
         this.blob.init();
         this.setpositionY();
         this.tracks.forEach(track => {
@@ -211,6 +245,7 @@ class Carousel {
     };
 
     clickHandler = (evt) => {
+        this.hideItem(this.focusedRowIndex, this.focusedElementIndex);
         switch(this.blobElement.className) {
             case 'blueblob':
                 this.handleLeft();
@@ -228,18 +263,13 @@ class Carousel {
                 console.log('No valid blob class found');
                 break;
         }
+        this.revealItem(this.focusedRowIndex, this.focusedElementIndex);
     };
 } 
 
 
 window.addEventListener("load", function() {
     const carousel = new Carousel(document.querySelector('.carousel-section'), document.getElementById('blob'));
-    console.log(carousel);
-    console.log(carousel.blob.moveHandlerFunc);
     carousel.init();
-    this.setTimeout(() => {
-        alert('timer ended')
-        carousel.blob.stop()
-    }, 5000)
 });
 
