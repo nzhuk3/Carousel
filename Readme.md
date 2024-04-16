@@ -10,14 +10,17 @@ This project provides an object-oriented approach to creating an interactive car
 - Customizable Constraints: The carousel and blob animations are customizable through passed constraints, making it flexible for different use cases.
 
 ### Classes
-#### 1. Blob
-The Blob class manages the animated element within the carousel. It handles all animation-related functionalities, including movement, scaling, and rotation based on mouse interactions.
+#### 1. CursorBlob
+The CursorBlob class manages the animated element within the carousel. It handles all animation-related functionalities, including movement, scaling, and rotation based on mouse interactions.
 
 
 ##### Constructor Parameters
 
-- **blob**: The DOM element representing the blob.
+- **cursorBlob**:(Element): The DOM element that represents the animated blob.
 - **constraints**: An object specifying the vertical and horizontal limits within which the blob can animate.
+- **moveSpeed** (Number, optional): The speed at which the blob follows the cursor. Default is 0.2.
+- **scaleSpeed** (Number, optional): The speed at which the blob scales. Default is 0.2.
+- **rotateSpeed** (Number, optional): The speed at which the blob rotates. Default is 0.2.
 
 ##### Methods
 - **init()**: Initializes the blob's event listeners and starts the animation.
@@ -25,7 +28,9 @@ The Blob class manages the animated element within the carousel. It handles all 
 - **update()**: Recursively updates the blob's position, scale, and rotation.
 - **moveHandler(e)**: Handles mouse movement events.
 - **transformElement(element, matrix)**: Applies a transformation matrix to the blob element.
-- **getTransformMatrix(scale, rotationDegrees, translateX, translateY)**: Generates a CSS transformation matrix.
+- **getTransformMatrix(scaleX, scaleY, rotationDegrees, translateX, translateY)**: Generates a CSS transformation matrix.
+- **getBlobState(mouseX, mouseY)**: Determines the blob's appearance and transformation settings based on the cursor's position relative to the defined constraints.
+- **animateBlob(scaleX, scaleY, rotate, scaleSpeed, rotateSpeed)**: Updates the target transformations for the blob and optionally the transformation speeds.
 
 #### 2. Carousel
 The Carousel class manages the entire carousel system, including the tracks and individual items. It coordinates with the Blob class to handle animations and interactions.
@@ -39,8 +44,12 @@ The Carousel class manages the entire carousel system, including the tracks and 
 - **init()**: Sets up the carousel, applies initial transformations, and attaches event handlers.
 - **handleLeft()**, **handleRight()**, **handleUp()**, **handleDown()**: Methods to navigate the carousel in response to user actions.
 - **setpositionX()**, **setpositionY()**: Apply transformations to the carousel's tracks.
-- **clickHandler(evt)**: Manages click events within the carousel to navigate or interact with the blob.
+- **clickHandler(evt)**: Manages click events within the carousel to navigate or interact with the cursor blob.
+- **#unblur(rowIndex, itemIndex) and #blur(rowIndex, itemIndex)**: These methods handle the visual state of carousel items, either adding or removing blur effects. #unblur removes the blur effect to reveal the item clearly, while #blur adds a blur effect to hide the item. These are used internally to control item visibility during navigation interactions.
+- **'set onReveal(callback)' and set onHide(callback)** : These setter methods allow for custom callback functions to be defined for item visibility changes. They ensure that the provided callbacks are functions before assigning them to the private properties #onReveal and #onHide.
+- **revealItem(rowIndex, itemIndex, callback) and hideItem(rowIndex, itemIndex, callback)** : These methods control the visibility of specific items within the carousel. They use the provided callback functions (or the default ones) to add or remove visual effects such as blurring(by default).
 
+ 
 ### Setup
 To use this system in your project:
 

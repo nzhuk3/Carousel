@@ -67,7 +67,7 @@ a.enabled {
 
 #blob {
     opacity: 1;
-    height: 50px;
+    height: 70px;
     aspect-ratio: 1;
     position: absolute;
     top: 0;
@@ -85,6 +85,8 @@ a.enabled {
 
 #blob > img {
     user-select: none;
+    width: 45%;
+    height: 45%;
 }
 
 .whiteblob {
@@ -103,8 +105,8 @@ a.enabled {
     background: yellow;
 }
 
-.dbblob {
-    background: darkblue;
+.greenblob {
+    background: green;
 }
 
 .invisible { 

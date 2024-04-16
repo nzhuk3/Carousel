@@ -1,30 +1,27 @@
 
 
-class Blob {
-    /**
-    * @constructor
-    * @param {Element} blob
-    */
+class CursorBlob {
     
     isStopped = false;
-    moveSpeed = 0.4;
-    scaleSpeed = 0.2;
-    rotateSpeed = 0.2;
     mouseX = 0;
-    mouseY = 0; // Текущая позиция мыши
+    mouseY = 0;
     posX = 0;
-    posY = 0; // Текущая позиция элемента
-    currentScale = 1; // Текущий размер
-    targetScale = 1; // Размер к которому мы стремимся
-    currentRotate = 0; // Текущий угол
-    targetRotate = 0; // Угол поворота к которому мы стремимся
-    
-    offsetX = blob.clientWidth / 2;
-    offsetY = blob.clientHeight / 2;
+    posY = 0;
+    currentScaleX = 1;
+    targetScaleX = 1;
+    currentScaleY = 1;
+    targetScaleY = 1;
+    currentRotate = 0;
+    targetRotate = 0;
 
-    constructor(blob, constraints) {
-        this.blobEl = blob;
+    constructor(cursorBlob, constraints, moveSpeed = 0.2, scaleSpeed = 0.2, rotateSpeed = 0.2) {
+        this.cursorBlobEl = cursorBlob;
         this.carouselConstraints = constraints;
+        this.moveSpeed = moveSpeed;
+        this.scaleSpeed = scaleSpeed;
+        this.rotateSpeed = rotateSpeed;
+        this.offsetX = cursorBlob.clientWidth / 2;
+        this.offsetY = cursorBlob.clientHeight / 2;
     }
 
     isInVerticalZone(mouseY) {
@@ -43,64 +40,68 @@ class Blob {
 
     getBlobState(mouseX, mouseY) {
         if (mouseX > this.carouselConstraints.carouselMiddlePartEndX && this.isInVerticalZone(mouseY)) {
-            return { className: 'redblob', scale: 1, rotation: 0 };
+            return { className: 'redblob', scaleX: 1, scaleY: 1, rotation: 0 };
         }
         if (mouseX < this.carouselConstraints.carouselMiddlePartStartX && this.isInVerticalZone(mouseY)) {
-            return { className: 'blueblob', scale: 1, rotation: -180 };
+            return { className: 'blueblob', scaleX: 1, scaleY: 1, rotation: -180 };
         }
         if (mouseY <  this.carouselConstraints.carouselMiddlePartStartY) {
-            return { className: 'dbblob', scale: 1, rotation: -90 };
+            return { className: 'greenblob', scaleX: 1, scaleY: 1, rotation: -90 };
         }
         if (mouseY > this.carouselConstraints.carouselMiddlePartEndY) {
-            return { className: 'yellowblob', scale: 1, rotation: 90 };
+            return { className: 'yellowblob', scaleX: 1, scaleY: 1, rotation: 90 };
         }
     
-        return { className: 'whiteblob', scale: 1.4, rotation: 90 };
+        return { className: 'whiteblob', scaleX: 1.2, scaleY: 1.2, rotation: 90 };
     }
 
     moveHandler = (e) => {
         this.mouseX = e.clientX;
         this.mouseY = e.clientY;
-        const { className, scale, rotation } = this.getBlobState(e.clientX, e.clientY);
-        this.blobEl.className = className;
-        this.animateBlob(scale, rotation);
+        const { className, scaleX, scaleY, rotation } = this.getBlobState(e.clientX, e.clientY);
+        this.cursorBlobEl.className = className;
+        this.animateBlob(scaleX, scaleY, rotation);
     }
 
     update = () => {
         this.posX += (this.mouseX - this.posX) * this.moveSpeed;
         this.posY += (this.mouseY - this.posY) * this.moveSpeed;
-        this.currentScale += (this.targetScale - this.currentScale) * this.scaleSpeed;
+        this.currentScaleX += ((this.targetScaleX - this.currentScaleX) * this.scaleSpeed) ;
+        this.currentScaleY += ((this.targetScaleY - this.currentScaleY) * this.scaleSpeed);;
         this.currentRotate += (this.targetRotate - this.currentRotate) * this.rotateSpeed;
+        this.currentScaleX -= Math.min(Math.abs(this.mouseY - this.posY) * 0.001, 0.05);
+        this.currentScaleY -= Math.min(Math.abs(this.mouseX - this.posX) * 0.001, 0.05);
 
-        this.transformElement(this.blobEl, this.getTransformMatrix(this.currentScale, this.currentRotate, this.posX - this.offsetX, this.posY - this.offsetY));
+        this.transformElement(this.cursorBlobEl, this.getTransformMatrix(this.currentScaleX, this.currentScaleY, this.currentRotate, this.posX - this.offsetX, this.posY - this.offsetY));
         if (!this.isStopped) {
             requestAnimationFrame(this.update);
         }
     }
 
-    getTransformMatrix(scale, rotationDegrees, translateX, translateY) {
+    getTransformMatrix(scaleX, scaleY, rotationDegrees, translateX, translateY) {
         const radians = rotationDegrees * Math.PI / 180;
 
         const cos = Math.cos(radians).toFixed(4);
         const sin = Math.sin(radians).toFixed(4);
 
         const matrixValues = [
-            cos * scale,    // a
-            sin * scale,    // b
-            -sin * scale,   // c
-            cos * scale,    // d
-            translateX,     // tx
-            translateY      // ty
+            cos * scaleX,   
+            sin * scaleY,   
+            -sin * scaleX,
+            cos * scaleY,   
+            translateX,   
+            translateY    
         ];
 
         return `matrix(${matrixValues.join(', ')})`;
     }
 
-    animateBlob(scale, rotate, ss = 0.2, rs = 0.2) {
+    animateBlob(scaleX, scaleY, rotate, scaleSpeed = this.scaleSpeed, rotateSpeed = this.rotateSpeed) {
         this.targetRotate = rotate;
-        this.rotateSpeed = ss;
-        this.targetScale = scale;
-        this.scaleSpeed = rs;
+        this.rotateSpeed = scaleSpeed;
+        this.targetScaleX = scaleX;
+        this.targetScaleY = scaleY;
+        this.scaleSpeedX = rotateSpeed;
     }
 
     transformElement(element, matrix) {
@@ -110,17 +111,12 @@ class Blob {
 
 
 class Carousel {
-    /**
-    * @constructor
-    * @param {Element} container
-    * @param {Element} blob
-    */
 
     focusedElementIndex = 0;
     focusedRowIndex = 0;
     slidesToScroll = 1;
 
-    constructor(container, blob) {
+    constructor(container, cursorBlob) {
         this.carousel = container;
         this.carouselRect = this.carousel.getBoundingClientRect();
         this.trackContainer = container.firstElementChild;
@@ -139,13 +135,13 @@ class Carousel {
         this.carouselMiddlePartEndX = this.carouselMiddlePartStartX + this.itemWidth;
         this.carouselMiddlePartStartY = (this.carousel.clientHeight - this.itemHeight) / 2;
         this.carouselMiddlePartEndY = this.carouselMiddlePartStartY + this.itemHeight;
-        this.blob = new Blob(blob, {
+        this.cursorBlob = new CursorBlob(cursorBlob, {
             carouselMiddlePartStartX: this.carouselMiddlePartStartX,
             carouselMiddlePartEndX: this.carouselMiddlePartEndX,
             carouselMiddlePartStartY: this.carouselMiddlePartStartY,
             carouselMiddlePartEndY: this.carouselMiddlePartEndY
             });
-        this.blobElement = this.blob.blobEl;
+        this.cursorBlobElement = this.cursorBlob.cursorBlobEl;
     }
 
     #unblur = (rowIndex, itemIndex) => {
@@ -164,12 +160,16 @@ class Carousel {
     set onReveal(callback) {
         if(typeof callback == 'function') {
             this.#onReveal = callback;
+        } else {
+            throw new Error('Assigned value must be a function')
         }
     }
 
     set onHide(callback) {
         if(typeof callback == 'function') {
             this.#onHide = callback;
+        } else {
+            throw new Error('Assigned value must be a function')
         }
     }
 
@@ -181,19 +181,19 @@ class Carousel {
         callback(rowIndex, itemIndex)
     }
 
-    setpositionX() {
+    setPositionX() {
         this.track.style.transform = `translate(${this.positionX}px, 0px)`;
         this.track.dataset.position = this.positionX;
     };
 
-    setpositionY() {
+    setPositionY() {
         this.trackContainer.style.transform = `translate(0px, ${this.positionY}px)`;
     };
 
     init() {
         this.revealItem(this.focusedRowIndex, this.focusedElementIndex);
-        this.blob.init();
-        this.setpositionY();
+        this.cursorBlob.init();
+        this.setPositionY();
         this.tracks.forEach(track => {
             track.style.transform = `translate(${this.positionX}px, 0px)`;
             track.dataset.position = this.positionX;
@@ -202,14 +202,12 @@ class Carousel {
         this.carousel.addEventListener('click', this.clickHandler);
     };
 
-    
-
     handleLeft()  {
         if (this.focusedElementIndex > 0) {
             this.positionX += this.movepositionX;
             this.focusedElementIndex -= this.slidesToScroll;
             this.track.dataset.index = this.focusedElementIndex;
-            this.setpositionX();
+            this.setPositionX();
         }
     };
     
@@ -218,7 +216,7 @@ class Carousel {
             this.positionX -= this.movepositionX;
             this.focusedElementIndex += this.slidesToScroll;
             this.track.dataset.index = this.focusedElementIndex;
-            this.setpositionX();
+            this.setPositionX();
         }
     };
     
@@ -229,7 +227,7 @@ class Carousel {
             this.track = this.tracks[this.focusedRowIndex];
             this.positionX = parseInt(this.track.dataset.position);
             this.focusedElementIndex = parseInt(this.track.dataset.index);
-            this.setpositionY();
+            this.setPositionY();
         }
     };
     
@@ -240,13 +238,13 @@ class Carousel {
             this.track = this.tracks[this.focusedRowIndex];
             this.positionX = parseInt(this.track.dataset.position);
             this.focusedElementIndex = parseInt(this.track.dataset.index);
-            this.setpositionY();
+            this.setPositionY();
         }
     };
 
     clickHandler = (evt) => {
         this.hideItem(this.focusedRowIndex, this.focusedElementIndex);
-        switch(this.blobElement.className) {
+        switch(this.cursorBlobElement.className) {
             case 'blueblob':
                 this.handleLeft();
                 break;
@@ -256,7 +254,7 @@ class Carousel {
             case 'yellowblob':
                 this.handleDown();
                 break;
-            case 'dbblob':
+            case 'greenblob':
                 this.handleUp();
                 break;
             default:
@@ -266,7 +264,6 @@ class Carousel {
         this.revealItem(this.focusedRowIndex, this.focusedElementIndex);
     };
 } 
-
 
 window.addEventListener("load", function() {
     const carousel = new Carousel(document.querySelector('.carousel-section'), document.getElementById('blob'));
