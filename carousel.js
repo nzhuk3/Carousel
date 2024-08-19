@@ -1,5 +1,3 @@
-
-
 class CursorBlob {
     
     isStopped = false;
@@ -29,11 +27,14 @@ class CursorBlob {
     }
 
     init() {
+        this.isStopped = false;
+        this.cursorBlobEl.animate({opacity: 1}, {duration: 200, fill: 'forwards'})
         document.body.addEventListener('mousemove', this.moveHandler);
         this.update();
     }
     
     stop() {
+        this.cursorBlobEl.animate({opacity: 0}, {duration: 200, fill: 'forwards'})
         document.body.removeEventListener('mousemove', this.moveHandler);
         this.isStopped = true;
     }
@@ -117,8 +118,8 @@ class Carousel {
     slidesToScroll = 1;
 
     constructor(container, cursorBlob) {
-        this.carousel = container;
-        this.carouselRect = this.carousel.getBoundingClientRect();
+        this.carouselContainer = container;
+        this.carouselRect = this.carouselContainer.getBoundingClientRect();
         this.trackContainer = container.firstElementChild;
         this.tracks = Array.from(this.trackContainer.children);
         this.track = this.tracks[0];
@@ -129,11 +130,13 @@ class Carousel {
         this.itemHeight = (this.itemRect.height);
         this.movepositionX = this.slidesToScroll * this.itemWidth;
         this.movepositionY = this.slidesToScroll * this.itemHeight;
-        this.positionX = window.innerWidth / 2 - this.itemRect.width / 2 - this.itemRect.left;
-        this.positionY = window.innerHeight / 2 - this.itemRect.height / 2 - this.itemRect.top;
+        this.initialPositionX = window.innerWidth / 2 - this.itemRect.width / 2 - this.itemRect.left;
+        this.initialPositionY = window.innerHeight / 2 - this.itemRect.height / 2 - this.itemRect.top;
+        this.positionX = this.initialPositionX;
+        this.positionY = this.initialPositionY;
         this.carouselMiddlePartStartX = (window.innerWidth - this.itemWidth) / 2;
         this.carouselMiddlePartEndX = this.carouselMiddlePartStartX + this.itemWidth;
-        this.carouselMiddlePartStartY = (this.carousel.clientHeight - this.itemHeight) / 2;
+        this.carouselMiddlePartStartY = (this.carouselContainer.clientHeight - this.itemHeight) / 2;
         this.carouselMiddlePartEndY = this.carouselMiddlePartStartY + this.itemHeight;
         this.cursorBlob = new CursorBlob(cursorBlob, {
             carouselMiddlePartStartX: this.carouselMiddlePartStartX,
@@ -181,33 +184,44 @@ class Carousel {
         callback(rowIndex, itemIndex)
     }
 
-    setPositionX() {
-        this.track.style.transform = `translate(${this.positionX}px, 0px)`;
-        this.track.dataset.position = this.positionX;
+    setPositionX(positionX) {
+        this.track.style.transform = `translate(${positionX}px, 0px)`;
+        this.track.dataset.position = positionX;
     };
 
-    setPositionY() {
-        this.trackContainer.style.transform = `translate(0px, ${this.positionY}px)`;
+    setPositionY(positionY) {
+        this.trackContainer.style.transform = `translate(0px, ${positionY}px)`;
     };
 
-    init() {
+    init(ms = 0) {
         this.revealItem(this.focusedRowIndex, this.focusedElementIndex);
         this.cursorBlob.init();
-        this.setPositionY();
+        this.setPositionY(this.positionY);
         this.tracks.forEach(track => {
-            track.style.transform = `translate(${this.positionX}px, 0px)`;
-            track.dataset.position = this.positionX;
+            track.style.transform = `translate(${this.initialPositionX}px, 0px)`;
+            track.dataset.position = this.initialPositionX;
             track.dataset.index = 0;
         })
-        this.carousel.addEventListener('click', this.clickHandler);
+        setTimeout(()=>{
+            this.carouselContainer.addEventListener('dblclick', this.changeState);
+            this.carouselContainer.addEventListener('click', this.clickHandler);
+        }, ms)
     };
+
+    stop() {
+        this.track.children[this.focusedElementIndex].firstElementChild.firstElementChild.classList.add('blurred');
+        this.track.children[this.focusedElementIndex].classList.remove('enabled');
+        this.carouselContainer.removeEventListener('dblclick', this.changeState);
+        this.carouselContainer.removeEventListener('click', this.clickHandler);
+        this.cursorBlob.stop();
+    }
 
     handleLeft()  {
         if (this.focusedElementIndex > 0) {
             this.positionX += this.movepositionX;
             this.focusedElementIndex -= this.slidesToScroll;
             this.track.dataset.index = this.focusedElementIndex;
-            this.setPositionX();
+            this.setPositionX(this.positionX);
         }
     };
     
@@ -216,7 +230,7 @@ class Carousel {
             this.positionX -= this.movepositionX;
             this.focusedElementIndex += this.slidesToScroll;
             this.track.dataset.index = this.focusedElementIndex;
-            this.setPositionX();
+            this.setPositionX(this.positionX);
         }
     };
     
@@ -227,7 +241,7 @@ class Carousel {
             this.track = this.tracks[this.focusedRowIndex];
             this.positionX = parseInt(this.track.dataset.position);
             this.focusedElementIndex = parseInt(this.track.dataset.index);
-            this.setPositionY();
+            this.setPositionY(this.positionY);
         }
     };
     
@@ -238,7 +252,7 @@ class Carousel {
             this.track = this.tracks[this.focusedRowIndex];
             this.positionX = parseInt(this.track.dataset.position);
             this.focusedElementIndex = parseInt(this.track.dataset.index);
-            this.setPositionY();
+            this.setPositionY(this.positionY);
         }
     };
 
@@ -263,10 +277,67 @@ class Carousel {
         }
         this.revealItem(this.focusedRowIndex, this.focusedElementIndex);
     };
+
+    changeState = () => {
+        const trackRect = this.trackContainer.getBoundingClientRect();
+        const centerX = trackRect.left + trackRect.width / 2;
+        const centerY = trackRect.top + trackRect.height / 2;
+        const koeff = window.innerHeight  / (trackRect.height) - 0.03;
+        const translateXValue = ( window.innerWidth / 2 -centerX);
+        const traslateYValue = (window.innerHeight / 2 -centerY) + this.positionY ;
+        this.carouselContainer.onmouseover = (e) => {
+            if (e.target.className == 'carousel-item') {
+                e.target.firstElementChild.firstElementChild.classList.remove('blurred');
+            }
+        }
+        this.carouselContainer.querySelectorAll('a > img').forEach(image => {
+            const carouselItem = image.closest('.carousel-item');
+            carouselItem.onmouseleave = (e) => {
+                image.classList.add('blurred');
+                carouselItem.classList.remove('enabled');
+            }
+        })
+        this.stop();
+        this.tracks.forEach(track => {
+            track.style.transform = `translate(0px, 0px)`;
+            track.dataset.position = this.initialPositionX;
+            track.dataset.index = 0;
+        })
+        this.carouselContainer.onclick = (e) => {
+            if (e.target.className == 'carousel-item') {
+                const trackIndex = Array.from(e.target.closest('.track-container').children).indexOf(e.target.closest('.track'));
+                const itemIndex = Array.from(e.target.parentElement.children).indexOf(e.target);
+                this.focusedElementIndex = itemIndex;
+                this.focusedRowIndex = trackIndex;
+                this.init(1000);
+                this.carouselContainer.onmouseover = null;
+                this.carouselContainer.onclick = null;
+                this.carouselContainer.querySelectorAll('a > img').forEach(image => {
+                    image.parentElement.parentElement.onmouseleave = null;
+                })
+                this.positionY = -(trackIndex * this.movepositionY) + this.initialPositionY;
+                this.track = this.tracks[this.focusedRowIndex];
+                this.track.dataset.index = this.focusedElementIndex;
+                this.positionX = this.initialPositionX + -(itemIndex * this.movepositionX);
+                this.setPositionX(this.positionX);
+                this.trackContainer.style.transform = `translate(0px, ${this.positionY}px)`;
+            }
+        }
+        this.trackContainer.style.transform = this.cursorBlob.getTransformMatrix(koeff, koeff, 0, translateXValue, traslateYValue);
+
+    }
 } 
 
 window.addEventListener("load", function() {
-    const carousel = new Carousel(document.querySelector('.carousel-section'), document.getElementById('blob'));
+    const carousel = new Carousel(document.querySelector('.carousel'), document.getElementById('blob'));
     carousel.init();
+
+    // For embedded use uncomment this
+    // document.querySelector('.carousel').addEventListener('mouseenter', ()=> {
+    //    carousel.init(); 
+    // })
+    // document.querySelector('.carousel').addEventListener('mouseleave', ()=> {
+    //     carousel.stop(); 
+    //  })
 });
 
